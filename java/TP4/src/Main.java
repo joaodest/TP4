@@ -23,19 +23,9 @@ public class Main {
         String caminhoPc = "C:/Users/João/Downloads/characters.csv";
 
         ArvoreBinaria arv = new ArvoreBinaria();
-        int i = 0;
-        data.lerCsv(caminhoPc);
-        while(sc.hasNextLine()) {
-            String linha = sc.nextLine();
+        data.lerCsv(caminhoVerde);
 
-            arv.inserir(linha);
-            i++;
-            if(i == 3) break;
-        }
-        arv.mostrarCentral();
-
-        //Q01 q01 = new Q01(data);
-        //q01.questao01(sc);
+        Q01.questao01(data, sc);
 
 
         sc.close();
@@ -48,8 +38,38 @@ public class Main {
 }
 
 class Q01 {
+    public static void questao01(Data data, Scanner sc) throws Exception {
+        ArvoreBinaria arv = new ArvoreBinaria();
+        while (sc.hasNext()) {
+            String id = sc.nextLine();
+
+            if (Main.isFim(id)) {
+                break;
+            }
+
+            Personagem personagem = data.getPersonagemById(id);
+            arv.inserir(personagem);
+        }
+
+        while (sc.hasNext()) {
+            String name = sc.nextLine();
+
+            if (Main.isFim(name)) {
+                break;
+            }
+
+            arv.pesquisar(name);
+
+        }
+    }
+}
+
+class ArvoreHibrida {
+    NoHibrido raiz;
+    public ArvoreHibrida() { this.raiz = null; }
 
 }
+
 
 class ArvoreBinaria {
     public No raiz;
@@ -58,21 +78,17 @@ class ArvoreBinaria {
         this.raiz = null;
     }
 
-    public ArvoreBinaria(No raiz) {
-        this.raiz = raiz;
+    public void inserir(Personagem p) throws Exception {
+        raiz = inserir(raiz, p);
     }
 
-    public void inserir(String valor) throws Exception {
-        raiz = inserir(raiz, valor);
-    }
-
-    private No inserir(No no, String valor) throws Exception {
+    private No inserir(No no, Personagem p) throws Exception {
         if (no == null) {
-            no = new No(valor);
-        } else if (Data.ASCII(no.valor) > Data.ASCII(valor)) {
-            no.esq = inserir(no.esq, valor);
-        } else if (Data.ASCII(no.valor) < Data.ASCII(valor)) {
-            no.dir = inserir(no.dir, valor);
+            no = new No(p);
+        } else if (no.p.getPersonagemName().compareTo(p.getPersonagemName()) > 0) {
+            no.esq = inserir(no.esq, p);
+        } else if (no.p.getPersonagemName().compareTo(p.getPersonagemName()) < 0) {
+            no.dir = inserir(no.dir, p);
         } else {
             throw new Exception("Nao eh permitido inserir valores iguais");
         }
@@ -80,32 +96,66 @@ class ArvoreBinaria {
         return no;
     }
 
-    public void mostrarCentral(){
-        mostrarCentral(raiz);
+    public boolean pesquisar(String name) {
+        System.out.print(name + " => raiz ");
+        return pesquisar(raiz, name);
     }
 
-    private void mostrarCentral(No no) {
+    public boolean pesquisar(No no, String name) {
+        boolean resp = false;
+        if(no == null){
+            System.out.println("NAO");
+        } else if (no.p.getPersonagemName().equals(name)) {
+            System.out.println("SIM");
+            resp = true;
+        } else if (no.p.getPersonagemName().compareTo(name) > 0) {
+            System.out.print("esq ");
+            resp = pesquisar(no.esq, name);
+        } else if (no.p.getPersonagemName().compareTo(name) < 0) {
+            System.out.print("dir ");
+            resp = pesquisar(no.dir, name);
+        }
+        return resp;
+    }
+
+    public void mostrarPre() {
+        mostrarPre(raiz);
+    }
+
+    private void mostrarPre(No no) {
         if (no != null) {
-            mostrarCentral(no.esq);
-            System.out.println(no.valor);
-            mostrarCentral(no.dir);
+                System.out.print(no.p);
+                mostrarPre(no.esq);
+                mostrarPre(no.dir);
+            }
         }
     }
 
+
+class NoHibrido{
+    public int elemento;
+    public NoHibrido esq, dir;
+    public No raiz;
+
+    public NoHibrido(int elemento) {
+        this.elemento = elemento % 15;
+        this.esq = this.dir = null;
+        this.raiz = null;
+    }
 }
 
 class No {
-    public String valor;
+    public Personagem p;
     public No esq, dir;
 
-    public No(String valor, No esq, No dir) {
-        this.valor = valor;
+    public No(Personagem p, No esq, No dir) {
+        this.p = p;
         this.esq = esq;
         this.dir = dir;
     }
 
-    public No(String elemento) {
-        this(elemento, null, null);
+    public No(Personagem p) {
+        this(p, null, null);
     }
 }
 
@@ -240,10 +290,10 @@ class Data {
         }
     }
 
-    public static int ASCII(String s){
+    public static int ASCII(String s) {
         int sum = 0;
-        for(char c : s.toCharArray()) {
-            sum+=c;
+        for (char c : s.toCharArray()) {
+            sum += c;
         }
         return sum;
     }
