@@ -104,8 +104,7 @@ No *rotacaoEsq(No *i) {
     return tmp;
 }
 
-
-No* inserirAVL(No *no, Personagem p) {
+No *inserirAVL(No *no, Personagem p) {
     if (no == NULL) {
         return criarNo(p);
     } else if (strcmp(p.name, no->p.name) < 0) {
@@ -139,6 +138,92 @@ No* inserirAVL(No *no, Personagem p) {
 
     return no;
 }
+
+
+typedef struct {
+    Personagem personagem;
+    struct Celula *prox;
+} Celula;
+
+typedef struct {
+    Celula *primeira;
+    Celula *ultima;
+} Lista;
+
+typedef struct {
+    Lista *lista[21];
+} HashIndireta;
+
+Celula *instanciaCelulaPrimeira() {
+    Celula *tmp = (Celula *) malloc(sizeof(Celula));
+    tmp->prox = NULL;
+
+    return tmp;
+}
+
+Celula *instanciaCelula(Personagem personagem) {
+    Celula *tmp = (Celula *) malloc(sizeof(Celula));
+    tmp->personagem = personagem;
+    tmp->prox = NULL;
+
+    return tmp;
+}
+
+Lista *instanciaLista() {
+    Lista *lista = (Lista *) malloc(sizeof(Lista));
+    lista->primeira = instanciaCelulaPrimeira();
+    lista->ultima = lista->primeira;
+
+    return lista;
+}
+
+HashIndireta *instanciaHash() {
+    HashIndireta *hashIndireta = (HashIndireta *) malloc(sizeof(HashIndireta));
+    for (int i = 0; i < 21; i++) {
+        hashIndireta->lista[i] = instanciaLista();
+    }
+    return hashIndireta;
+}
+
+int hash(char *nome) {
+    int soma = 0;
+
+    for (int i = 0; i < strlen(nome); i++) {
+        soma += nome[i];
+    }
+
+    return soma % 21;
+}
+
+void inserirLista(Lista *lista, Personagem personagem) {
+    lista->ultima->prox = instanciaCelula(personagem);
+    lista->ultima = lista->ultima->prox;
+}
+
+void inserir(HashIndireta *tab, Personagem personagem) {
+    int pos = hash(personagem.name);
+    inserirLista(tab->lista[pos], personagem);
+}
+
+bool pesquisaLista(Lista *lista, char *nome) {
+    bool resp = false;
+    for(Celula* i = lista->primeira; i != NULL; i = i->prox) {
+        if(strcmp(nome, i->personagem.name) == 0) {
+            resp = true;
+            i = lista->ultima;
+        }
+    }
+    return resp;
+}
+
+void pesquisar(HashIndireta* tab, char* name) {
+    if(pesquisaLista(tab->lista[hash(name)], name)) {
+        printf(" (pos: %d) SIM\n", hash(name));
+    } else {
+        printf(" NAO\n");
+    }
+}
+
 
 int comparisons = 0;
 int swaps = 0;
@@ -286,10 +371,10 @@ Personagem *getPersonagemById(Personagem *personagens, int count, const char *id
     return NULL;
 }
 
-bool isFim(char str[]){
+bool isFim(char str[]) {
     bool c = true;
 
-    if(str[0] == 'F' && str[1] == 'I' && str[2] == 'M'){
+    if (str[0] == 'F' && str[1] == 'I' && str[2] == 'M') {
         c = false;
     }
 
@@ -302,10 +387,26 @@ void readIDsAndInsert(Personagem *personagens, int totalPersonagensCount, Arvore
     scanf("%99[^\n]%*c", id);
     id[strcspn(id, "\r")] = '\0';
 
-    while(isFim(id)){
+    while (isFim(id)) {
         Personagem *p = getPersonagemById(personagens, totalPersonagensCount, id);
         if (p != NULL) {
             arvore->raiz = inserirAVL(arvore->raiz, *p);
+        }
+        scanf("%99[^\n]%*c", id);
+        id[strcspn(id, "\r")] = '\0';
+    }
+}
+
+void readIDsAndInsertHash(Personagem *personagens, int totalPersonagensCount, HashIndireta *hash) {
+    char id[100];
+
+    scanf("%99[^\n]%*c", id);
+    id[strcspn(id, "\r")] = '\0';
+
+    while (isFim(id)) {
+        Personagem *p = getPersonagemById(personagens, totalPersonagensCount, id);
+        if (p != NULL) {
+            inserir(hash, *p);
         }
         scanf("%99[^\n]%*c", id);
         id[strcspn(id, "\r")] = '\0';
@@ -333,7 +434,7 @@ void searchNamesInAVL(ArvoreAVL *arvore) {
     scanf("%99[^\n]%*c", nome);
     nome[strcspn(nome, "\r")] = '\0';
 
-    while(isFim(nome)){
+    while (isFim(nome)) {
         printf("%s => raiz", nome);
         searchAVLNode(arvore->raiz, nome);
         scanf("%99[^\n]%*c", nome);
@@ -341,6 +442,19 @@ void searchNamesInAVL(ArvoreAVL *arvore) {
     }
 }
 
+void searchNamesInHash(HashIndireta *hash) {
+    char nome[MAX_NAME_LEN];
+
+    scanf("%99[^\n]%*c", nome);
+    nome[strcspn(nome, "\r")] = '\0';
+
+    while (isFim(nome)) {
+        printf("%s", nome);
+        pesquisar(hash, nome);
+        scanf("%99[^\n]%*c", nome);
+        nome[strcspn(nome, "\r")] = '\0';
+    }
+}
 
 Personagem *initializeData(char *path, int *count) {
     Personagem *personagens;
@@ -403,12 +517,14 @@ int main() {
     int totalPersonagensCount = 0;
     Personagem *allPersonagens = initializeData(caminhoVerde, &totalPersonagensCount);
 
-    ArvoreAVL *arvore = criarArv();
-
-    readIDsAndInsert(allPersonagens, totalPersonagensCount, arvore);
+    //ArvoreAVL *arvore = criarArv();
     //inserirPersonagensNaArvore(arvore, allPersonagens, totalPersonagensCount);
-    searchNamesInAVL(arvore);
+    //readIDsAndInsert(allPersonagens, totalPersonagensCount, arvore);
+    //searchNamesInAVL(arvore);
 
+    HashIndireta *hash = instanciaHash();
+    readIDsAndInsertHash(allPersonagens, totalPersonagensCount, hash);
+    searchNamesInHash(hash);
 
     clear(allPersonagens);
     return 0;
